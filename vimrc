@@ -9,6 +9,8 @@ set background=dark                                          " set theme to dark
 set cursorcolumn                                             " highlight current column
 set cursorline                                               " highlight current line
 set clipboard=unnamed                                        " yank and paste with the system clipboard
+                                                             " note: every yank lands on the OS clipboard,
+                                                             " including on shared/managed machines
 set directory-=.                                             " don't store swapfiles in the current directory
 " set encoding=utf-8
 set expandtab                                                " expand tabs to spaces
@@ -73,8 +75,16 @@ let &t_EI = "\<Esc>]50;CursorShape=0\x7"
 set hlsearch                     " highlight search
 nmap <leader>hl :let @/ = ""<CR> " escape/unhighlight search
 
-" enable spellcheck
-set spell spelllang=en_us
+" Spell check prose only.
+"
+" This used to be a bare `set spell spelllang=en_us`, which flagged every
+" identifier in every source file. It also made startup fragile: on a machine
+" with no en.utf-8.spl installed, vim prompts to download the spell file over
+" the network, which hangs or fails behind a restrictive proxy.
+augroup SpellProse
+  autocmd!
+  autocmd FileType markdown,text,gitcommit setlocal spell spelllang=en_us
+augroup END
 " gui settings
 " Force to use underline for spell check results
 augroup SpellUnderline
@@ -156,12 +166,24 @@ inoremap <expr> <M-,> pumvisible() ? '<C-n>' :
 let g:rustfmt_autosave = 1
 au FileType rust nmap gd <Plug>(rust-def)
 au FileType rust nmap <leader>gd <Plug>(rust-doc)
-" Rust Omnicomplete
-let g:racer_cmd = '~/.cargo/bin/racer'
-let g:racer_experimental_completer = 1
+" Rust omni-completion is unconfigured here on purpose: racer was archived
+" upstream in 2021 and superseded by rust-analyzer. The vim-racer submodule
+" is still vendored but inert; remove it when rust-analyzer is wired up.
 
 " ALE: Asynchronous Lint Engine
 " ========================================================================
 let g:ale_linters = {
 \   'java': [''],
 \}
+
+" Machine-local overrides (not tracked in this repo)
+" -----------------------------------------------------------------------------------------------------------------------
+"
+" Anything specific to one machine or one employer goes in ~/.vimrc.local:
+" linters and fixers for an internal toolchain, absolute paths, host-specific
+" settings. Keeping it out of the tracked vimrc means this repo stays
+" publishable, and it removes the reason to fork a per-employer branch and
+" push it to a public remote.
+if filereadable(expand('~/.vimrc.local'))
+  source ~/.vimrc.local
+endif
