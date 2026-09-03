@@ -43,9 +43,6 @@
 [submodule "vim/pack/plugins/start/supertab"]
 	path = plugins/start/supertab
 	url = https://github.com/ervandew/supertab.git
-[submodule "vim/pack/plugins/start/vim-racer"]
-	path = plugins/start/vim-racer
-	url = https://github.com/racer-rust/vim-racer.git
 [submodule "plugins/start/vim-ember"]
 	path = plugins/start/vim-ember-hbs
 	url = https://github.com/joukevandermaas/vim-ember-hbs.git
