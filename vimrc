@@ -8,6 +8,49 @@ set autoread                                                 " reload files when
 set background=dark                                          " set theme to darkbackground (specifically for solarized dark)
 set cursorcolumn                                             " highlight current column
 set cursorline                                               " highlight current line
+" Tmux & OSC 52 clipboard integration
+" When running inside tmux, synchronize Vim's clipboard registers with tmux's
+" buffer and propagate to the outer terminal clipboard via OSC 52 (-w flag).
+if !empty($TMUX) && executable('tmux')
+  if has('clipboard_provider')
+    function! s:TmuxCopy(reg, type, lines) abort
+      let l:text = join(a:lines, "\n")
+      if a:type ==# 'V'
+        let l:text .= "\n"
+      endif
+      call system('tmux load-buffer -w -', l:text)
+    endfunction
+
+    function! s:TmuxPaste(reg) abort
+      let l:text = system('tmux show-buffer')
+      if v:shell_error != 0 || empty(l:text)
+        return ['v', []]
+      endif
+      let l:lines = split(l:text, "\n", 1)
+      if len(l:lines) > 0 && l:lines[-1] ==# ''
+        call remove(l:lines, -1)
+        return ['V', l:lines]
+      endif
+      return ['v', l:lines]
+    endfunction
+
+    let v:clipproviders['tmux'] = {
+          \ 'available': { -> 1 },
+          \ 'copy': { '+': function('s:TmuxCopy'), '*': function('s:TmuxCopy') },
+          \ 'paste': { '+': function('s:TmuxPaste'), '*': function('s:TmuxPaste') },
+          \ }
+    set clipmethod=tmux,wayland,x11
+  elseif exists('##TextYankPost')
+    augroup TmuxClipboardSync
+      autocmd!
+      autocmd TextYankPost *
+            \ if index(['', '0', '+', '*'], v:event.regname) != -1 |
+            \   call system('tmux load-buffer -w -', join(v:event.regcontents, "\n") . (v:event.regtype ==# 'V' ? "\n" : '')) |
+            \ endif
+    augroup END
+  endif
+endif
+
 set clipboard=unnamed                                        " yank and paste with the system clipboard
                                                              " note: every yank lands on the OS clipboard,
                                                              " including on shared/managed machines
@@ -26,7 +69,10 @@ set listchars=tab:▸\ ,trail:▫,eol:¬
 " set wildignore=node_modules/**,tmp/**
 " set wildmenu                                                 " show a navigable menu for tab completion
 " set wildmode=longest,list,full
-set mouse=a                                                    " Enable basic mouse behavior such as resizing buffers.
+set mouse=a                                                    " Enable basic mouse behavior such as resizing buffers and scrolling.
+if has('mouse_sgr')
+  set ttymouse=sgr                                             " SGR extended mouse mode for tmux and modern terminals
+endif
 set number                                                   " show line numbers
 set shiftwidth=2                                             " normal mode indentation commands use 2 spaces
 set softtabstop=2                                            " insert mode tab and backspace use 2 spaces
@@ -56,14 +102,8 @@ noremap! jj <ESC>
 " autocmd VimResized * :wincmd =                         " automatically rebalance windows on vim resize
 
 " Fix Cursor in TMUX
-" if exists('$TMUX')
-"   set ttymouse=xterm2
-"   let &t_SI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=1\x7\<Esc>\\"
-"   let &t_EI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=0\x7\<Esc>\\"
-" else
 let &t_SI = "\<Esc>]50;CursorShape=1\x7"
 let &t_EI = "\<Esc>]50;CursorShape=0\x7"
-" endif
 
 " Don't copy the contents of an overwritten selection.
 " vnoremap p "_dP
@@ -176,6 +216,12 @@ au FileType rust nmap <leader>gd <Plug>(rust-doc)
 let g:ale_linters = {
 \   'java': [''],
 \}
+
+" Modular variant overrides (managed by Makefile variants)
+" -----------------------------------------------------------------------------------------------------------------------
+if filereadable(expand('~/.vimrc.variant'))
+  source ~/.vimrc.variant
+endif
 
 " Machine-local overrides (not tracked in this repo)
 " -----------------------------------------------------------------------------------------------------------------------
