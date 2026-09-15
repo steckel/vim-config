@@ -46,3 +46,6 @@
 [submodule "plugins/start/vim-ember"]
 	path = plugins/start/vim-ember-hbs
 	url = https://github.com/joukevandermaas/vim-ember-hbs.git
+[submodule "vendor/vim-labs"]
+	path = vendor/vim-labs
+	url = https://github.com/steckel/vim-labs.git
