@@ -3,6 +3,65 @@ ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 VIM_DIR := $(HOME)/.vim
 VIM_PACKAGE_DIR := $(VIM_DIR)/pack
 VIM_LABS_DIR ?= $(ROOT_DIR)/../vim-labs
+VARIANTS_DIR := $(ROOT_DIR)/variants
+
+# Automatically include latest nvm Node.js in PATH if available (for vim-labs MCP install)
+NVM_NODE_BIN := $(lastword $(wildcard $(HOME)/.nvm/versions/node/v*/bin))
+ifneq ($(NVM_NODE_BIN),)
+  export PATH := $(NVM_NODE_BIN):$(PATH)
+endif
+
+# ==============================================================================
+# Modular Variant Discovery Engine
+# ==============================================================================
+# Variants are modular configurations located in $(VARIANTS_DIR)/<variant_name>
+# (often maintained in environment-specific branches such as 'work').
+#
+# Each variant directory may provide:
+#   1. detect.sh (or detect): An executable script that exits 0 if the host
+#      environment matches the variant, and prints a human-readable description.
+#   2. variant.mk: A Makefile fragment included by this root Makefile.
+#
+# Override variant manually if desired:
+#   make VARIANT=work
+#   make VARIANT=none
+# ==============================================================================
+DETECTED_VARIANT := $(shell \
+	if [ -d "$(VARIANTS_DIR)" ]; then \
+		for dir in "$(VARIANTS_DIR)"/*; do \
+			if [ -d "$$dir" ]; then \
+				detector=""; \
+				if [ -x "$$dir/detect.sh" ]; then \
+					detector="$$dir/detect.sh"; \
+				elif [ -x "$$dir/detect" ]; then \
+					detector="$$dir/detect"; \
+				fi; \
+				if [ -n "$$detector" ] && "$$detector" >/dev/null 2>&1; then \
+					basename "$$dir"; \
+					exit 0; \
+				fi; \
+			fi; \
+		done; \
+	fi \
+)
+
+# Check if current git branch matches a variant directory name
+GIT_BRANCH := $(shell git -C "$(ROOT_DIR)" rev-parse --abbrev-ref HEAD 2>/dev/null)
+ifneq ($(wildcard $(VARIANTS_DIR)/$(GIT_BRANCH)),)
+  DETECTED_VARIANT := $(GIT_BRANCH)
+endif
+
+VARIANT ?= $(DETECTED_VARIANT)
+ifneq ($(filter none off 0 false,$(VARIANT)),)
+  override VARIANT :=
+endif
+
+VARIANT_DIR := $(VARIANTS_DIR)/$(VARIANT)
+VARIANT_MK  := $(VARIANT_DIR)/variant.mk
+
+ifneq ($(wildcard $(VARIANT_MK)),)
+  include $(VARIANT_MK)
+endif
 
 .PHONY: directories
 directories:
@@ -24,20 +83,33 @@ install-vim-labs: git-submodules directories
 install-dev: directories
 	@python3 "$(VIM_LABS_DIR)/scripts/install.py" --vim-dir "$(VIM_DIR)"
 
-# The `solarized` target is gone. It symlinked
-# $(ROOT_DIR)/vim/pack/plugins/start/vim-colors-solarized/colors into ~/.vim,
-# but no vim/pack/ directory exists in this repo -- the plugin lives at
-# plugins/start/. The link it produced was always dangling, and nothing
-# noticed because vim finds the colorscheme on its own: plugins/ is symlinked
-# into ~/.vim/pack, and vim adds pack/*/start/* to runtimepath at startup,
-# colors/ included. Run `make install` on an existing machine to drop the
-# stale ~/.vim/colors link.
+.PHONY: hooks
+hooks:
+	@echo "Installing git safety hooks (pre-commit, pre-push)..."
+	@chmod +x "$(ROOT_DIR)/hooks/pre-commit" "$(ROOT_DIR)/hooks/pre-push"
+	@ln -snf "$(ROOT_DIR)/hooks/pre-commit" "$(ROOT_DIR)/.git/hooks/pre-commit"
+	@ln -snf "$(ROOT_DIR)/hooks/pre-push" "$(ROOT_DIR)/.git/hooks/pre-push"
+
+.PHONY: check-variant
+check-variant:
+ifneq ($(VARIANT),)
+  ifneq ($(wildcard $(VARIANT_MK)),)
+	@echo "==> Active variant: '$(VARIANT)' (loaded from $(VARIANT_DIR))"
+  else
+	@echo "==> [Notice] Detected '$(VARIANT)' environment, but '$(VARIANT_DIR)' is not present."
+	@echo "    If this configuration lives on a dedicated branch, switch with:"
+	@echo "      git checkout $(VARIANT) && make"
+  endif
+else
+	@echo "==> Active variant: none (standard baseline install)"
+endif
 
 .PHONY: install
-install: install-vim-labs
+install: install-vim-labs hooks check-variant
 	@echo "symlinking configuration files...."
 	@ln -snf "$(ROOT_DIR)/plugins" "$(VIM_PACKAGE_DIR)"
 	@ln -snf "$(ROOT_DIR)/vimrc" "$(HOME)/.vimrc"
-	@# Drop the dangling ~/.vim/colors link the old solarized target left
-	@# behind. Guarded on -L so a real colors/ directory is never touched.
 	@[ -L "$(VIM_DIR)/colors" ] && rm -f "$(VIM_DIR)/colors" || true
+ifneq ($(wildcard $(VARIANT_MK)),)
+	@$(MAKE) variant-install
+endif
