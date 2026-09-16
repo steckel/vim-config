@@ -194,7 +194,7 @@ inoremap <expr> <C-n> pumvisible() ? '<C-n>' :
   \ '<C-n><C-r>=pumvisible() ? "\<lt>Down>" : ""<CR>'
 inoremap <expr> <C-j> pumvisible() ? "\<lt>Down>" : '<C-j>'
 inoremap <expr> <C-k> pumvisible() ? "\<lt>Up>" : '<C-k>'
-" TODO(steckel): Do I really need this one?
+" Note: Determine if this mapping is still needed.
 " Simulates <C-X><C-O> to bring up the omni completion menu, then it simulates
 " <C-N><C-P> to remove the longest common text, and finally it simulates
 " <Down> again to keep a match highlighted.
