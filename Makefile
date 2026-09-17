@@ -45,10 +45,13 @@ DETECTED_VARIANT := $(shell \
 	fi \
 )
 
-# Check if current git branch matches a variant directory name
+# Check if current git branch (or its prefix before '/') matches a variant directory name
 GIT_BRANCH := $(shell git -C "$(ROOT_DIR)" rev-parse --abbrev-ref HEAD 2>/dev/null)
+GIT_BRANCH_PREFIX := $(firstword $(subst /, ,$(GIT_BRANCH)))
 ifneq ($(wildcard $(VARIANTS_DIR)/$(GIT_BRANCH)),)
   DETECTED_VARIANT := $(GIT_BRANCH)
+else ifneq ($(wildcard $(VARIANTS_DIR)/$(GIT_BRANCH_PREFIX)),)
+  DETECTED_VARIANT := $(GIT_BRANCH_PREFIX)
 endif
 
 VARIANT ?= $(DETECTED_VARIANT)
