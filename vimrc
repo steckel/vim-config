@@ -81,13 +81,6 @@ set tabstop=8                                                " actual tabs occup
 " keyboard shortcuts
 " -----------------------------------------------------------------------------------------------------------------------
 let mapleader = ','
-nnoremap <leader>a :Ack<space>                              " toggle :Ack with leader a
-nnoremap <leader>d :NERDTreeToggle<CR>
-nnoremap <leader>f :NERDTreeFind<CR>
-nnoremap <leader>t :CtrlP<CR>
-nnoremap <leader>T :CtrlPClearCache<CR>:CtrlP<CR>
-nnoremap <leader>b :CtrlPBuffer<CR>
-nnoremap <leader>] :TagbarToggle<CR>
 nnoremap <C-w>c :tabnew<CR>                                 " tab navigation
 nnoremap <C-w>p :tabp<CR>
 nnoremap <C-w>n :tabn<CR>
@@ -164,16 +157,7 @@ augroup SpellUnderline
   augroup END
 colorscheme solarized
 
-" ctrlp.vim
-let g:ctrlp_custom_ignore = { 'dir': '\.git$\|node_modules' }
-
-" DOCUMENT ME
 filetype plugin on
-
-" configure ack.vim with ag (the silver searcher)
-if executable('ag')
-  let g:ackprg = 'ag --vimgrep'
-endif
 
 " 'longest' will change the 'completeopt' option so that Vim's popup menu
 " doesn't select the first completion item, but rather just inserts the
@@ -201,21 +185,15 @@ inoremap <expr> <C-k> pumvisible() ? "\<lt>Up>" : '<C-k>'
 inoremap <expr> <M-,> pumvisible() ? '<C-n>' :
   \ '<C-x><C-o><C-n><C-p><C-r>=pumvisible() ? "\<lt>Down>" : ""<CR>'
 
-" Rust
-" ========================================================================
-let g:rustfmt_autosave = 1
-au FileType rust nmap gd <Plug>(rust-def)
-au FileType rust nmap <leader>gd <Plug>(rust-doc)
-" Rust omni-completion is unconfigured here on purpose: racer was archived
-" upstream in 2021 and superseded by rust-analyzer. The vim-racer submodule
-" has been removed along with its settings; wire up rust-analyzer through
-" ALE when it is needed.
-
-" ALE: Asynchronous Lint Engine
-" ========================================================================
-let g:ale_linters = {
-\   'java': [''],
-\}
+" Modular plugin & topic configurations (vimrc.d/*.vim & autoload/*.vim)
+" -----------------------------------------------------------------------------------------------------------------------
+let s:vimrc_dir = fnamemodify(resolve(expand('<sfile>:p')), ':h')
+if index(split(&runtimepath, ','), s:vimrc_dir) == -1
+  execute 'set runtimepath^=' . fnameescape(s:vimrc_dir)
+endif
+for s:cfg in sort(glob(s:vimrc_dir . '/vimrc.d/*.vim', 0, 1))
+  execute 'source' fnameescape(s:cfg)
+endfor
 
 " Modular variant overrides (managed by Makefile variants)
 " -----------------------------------------------------------------------------------------------------------------------
