@@ -124,7 +124,7 @@ augroup SpellUnderline
   autocmd!
   autocmd ColorScheme *
     \ highlight SpellBad
-    \   cterm=Underline
+    \   cterm=underline
     \   ctermfg=NONE
     \   ctermbg=NONE
     \   term=Reverse
@@ -132,7 +132,7 @@ augroup SpellUnderline
     \   guisp=Red
   autocmd ColorScheme *
     \ highlight SpellCap
-    \   cterm=Underline
+    \   cterm=underline
     \   ctermfg=NONE
     \   ctermbg=NONE
     \   term=Reverse
@@ -140,7 +140,7 @@ augroup SpellUnderline
     \   guisp=Red
   autocmd ColorScheme *
     \ highlight SpellLocal
-    \   cterm=Underline
+    \   cterm=underline
     \   ctermfg=NONE
     \   ctermbg=NONE
     \   term=Reverse
@@ -148,7 +148,7 @@ augroup SpellUnderline
     \   guisp=Red
   autocmd ColorScheme *
     \ highlight SpellRare
-    \   cterm=Underline
+    \   cterm=underline
     \   ctermfg=NONE
     \   ctermbg=NONE
     \   term=Reverse
